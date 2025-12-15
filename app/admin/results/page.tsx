@@ -523,7 +523,7 @@ export default function AdminResultsPage() {
                                         {selectedParticipantIds.length ? `${selectedParticipantIds.length} 名選択中` : '分析したい参加者をチェックしてください'}
                                     </span>
                                 </div>
-                                <ScrollArea className="max-h-64 rounded-lg border">
+                                <ScrollArea className="min-h-64 h-80 rounded-lg border">
                                     <div className="divide-y">
                                         {participantsWithMetrics.map(participant => {
                                             const isSelected = selectedParticipantIds.includes(participant.id);
