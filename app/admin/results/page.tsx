@@ -100,6 +100,8 @@ export default function AdminResultsPage() {
     const [participants, setParticipants] = useState<ApiParticipant[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [downloadError, setDownloadError] = useState<string | null>(null);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([]);
     const [participantCondition, setParticipantCondition] = useState<ConditionFilter>('all');
     const [aggregateCondition, setAggregateCondition] = useState<ConditionFilter>('all');
@@ -129,6 +131,37 @@ export default function AdminResultsPage() {
 
         loadData();
     }, []);
+
+    const handleDownloadCsv = async () => {
+        try {
+            setIsDownloading(true);
+            setDownloadError(null);
+            const params = new URLSearchParams();
+            selectedParticipantIds.forEach(id => params.append('participantId', id));
+            const url = params.toString()
+                ? `/api/admin/v-trial-long?${params.toString()}`
+                : '/api/admin/v-trial-long';
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('CSVのダウンロードに失敗しました');
+            }
+            const blob = await response.blob();
+            const fileName = response.headers.get('X-CSV-Filename') ?? 'v-trial-long.csv';
+            const objectUrl = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = objectUrl;
+            anchor.download = fileName;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            URL.revokeObjectURL(objectUrl);
+        } catch (err) {
+            console.error('Failed to download v_trial_long CSV:', err);
+            setDownloadError(err instanceof Error ? err.message : '不明なエラーが発生しました');
+        } finally {
+            setIsDownloading(false);
+        }
+    };
 
     const toggleParticipantSelection = (participantId: string) => {
         setSelectedParticipantIds(prev => {
@@ -431,6 +464,14 @@ export default function AdminResultsPage() {
                             </Link>
                         </Button>
                         <Button
+                            variant="outline"
+                            onClick={handleDownloadCsv}
+                            disabled={isDownloading}
+                        >
+                            <RefreshCw className={cn('mr-2 h-4 w-4', isDownloading ? 'animate-spin' : '')} />
+                            {isDownloading ? 'CSV作成中...' : 'v_trial_longをCSVで取得'}
+                        </Button>
+                        <Button
                             variant="secondary"
                             onClick={() => {
                                 if (typeof window !== 'undefined') {
@@ -448,6 +489,12 @@ export default function AdminResultsPage() {
                     <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                )}
+                {downloadError && (
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{downloadError}</AlertDescription>
                     </Alert>
                 )}
 
